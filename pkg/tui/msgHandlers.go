@@ -769,6 +769,32 @@ func switchTableFocusMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 			c := []string{defaultBrowserOpenCommand}
 			return m, tea.Batch(m.flashNotification(fmt.Sprintf("Opened SOP for %s", m.selectedIncident.ID)), openBrowserCmd(c, link))
 
+		case key.Matches(msg, defaultKeyMap.Dashboard):
+			if m.table.SelectedRow() == nil {
+				m.setStatus("no incident highlighted")
+				return m, nil
+			}
+			m.syncSelectedIncidentToHighlightedRow()
+			if m.selectedIncident == nil {
+				m.setStatus("no incident selected")
+				return m, nil
+			}
+			if !m.incidentAlertsLoaded {
+				m.setStatus("Loading incident alerts, please wait...")
+				return m, nil
+			}
+			link, ok := getDashboardLink(m.selectedIncidentAlerts)
+			if !ok {
+				m.setStatus("no dashboard link found")
+				return m, nil
+			}
+			if defaultBrowserOpenCommand == "" {
+				return m, func() tea.Msg { return errMsg{fmt.Errorf("unsupported OS: no browser open command available")} }
+			}
+
+			c := []string{defaultBrowserOpenCommand}
+			return m, tea.Batch(m.flashNotification(fmt.Sprintf("Opened dashboard for %s", m.selectedIncident.ID)), openBrowserCmd(c, link))
+
 		case key.Matches(msg, defaultKeyMap.ViewLog):
 			return m, m.readLog()
 
@@ -1013,6 +1039,17 @@ func switchIncidentFocusMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, func() tea.Msg { return openSOPMsg("sop") }
+
+		case key.Matches(msg, defaultKeyMap.Dashboard):
+			if m.selectedIncident == nil {
+				m.setStatus("no incident selected")
+				return m, nil
+			}
+			if !m.incidentAlertsLoaded {
+				m.setStatus("Loading incident alerts, please wait...")
+				return m, nil
+			}
+			return m, func() tea.Msg { return openDashboardMsg("dashboard") }
 
 		case key.Matches(msg, defaultKeyMap.ViewDocs):
 			m.viewingIncident = false

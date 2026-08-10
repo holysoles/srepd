@@ -1516,6 +1516,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		c := []string{defaultBrowserOpenCommand}
 		return m, tea.Batch(m.flashNotification(fmt.Sprintf("Opened SOP for %s", m.selectedIncident.ID)), openBrowserCmd(c, link))
 
+	case openDashboardMsg:
+		if m.selectedIncident == nil {
+			m.setStatus("no incident selected")
+			return m, nil
+		}
+		link, ok := getDashboardLink(m.selectedIncidentAlerts)
+		if !ok {
+			m.setStatus("no dashboard link found")
+			return m, nil
+		}
+		if defaultBrowserOpenCommand == "" {
+			return m, func() tea.Msg { return errMsg{fmt.Errorf("unsupported OS: no browser open command available")} }
+		}
+
+		log.Debug("openDashboardMsg", "incident", m.selectedIncident.ID, "link", link)
+		log.Info("opened dashboard in browser", "incident_id", m.selectedIncident.ID, "link", link)
+
+		c := []string{defaultBrowserOpenCommand}
+		return m, tea.Batch(m.flashNotification(fmt.Sprintf("Opened dashboard for %s", m.selectedIncident.ID)), openBrowserCmd(c, link))
+
 	case browserFinishedMsg:
 		if msg.err != nil {
 			m.setStatus(fmt.Sprintf("failed to open browser: %s", msg.err))

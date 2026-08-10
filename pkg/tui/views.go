@@ -935,21 +935,22 @@ func summarizeNotes(n []pagerduty.IncidentNote) []noteSummary {
 }
 
 type alertSummary struct {
-	ID          string
-	Name        string
-	Link        string
-	HTMLURL     string
-	Service     string
-	Created     string
-	Status      string
-	Incident    string
-	Cluster     string
-	Severity    string
-	Tags        []string
-	AlertType   string
-	Namespace   string
-	Description string
-	ClusterName string
+	ID            string
+	Name          string
+	Link          string
+	DashboardLink string
+	HTMLURL       string
+	Service       string
+	Created       string
+	Status        string
+	Incident      string
+	Cluster       string
+	Severity      string
+	Tags          []string
+	AlertType     string
+	Namespace     string
+	Description   string
+	ClusterName   string
 }
 
 func summarizeAlerts(a []pagerduty.IncidentAlert, clusterCache map[string]*ocm.ClusterInfo) []alertSummary {
@@ -979,6 +980,11 @@ func summarizeAlerts(a []pagerduty.IncidentAlert, clusterCache map[string]*ocm.C
 			link = getDetailFieldFromAlert("link", alt)
 		}
 
+		dashboardLink := normalized.DashboardLink
+		if dashboardLink == "" {
+			dashboardLink = getDetailFieldFromAlert("dashboard", alt)
+		}
+
 		var clusterName string
 		if clusterCache != nil && cluster != "" {
 			if info, ok := clusterCache[cluster]; ok {
@@ -990,21 +996,22 @@ func summarizeAlerts(a []pagerduty.IncidentAlert, clusterCache map[string]*ocm.C
 		}
 
 		s = append(s, alertSummary{
-			ID:          alt.ID,
-			Name:        name,
-			Link:        link,
-			Cluster:     cluster,
-			ClusterName: clusterName,
-			HTMLURL:     alt.HTMLURL,
-			Service:     alt.Service.Summary,
-			Created:     alt.CreatedAt,
-			Status:      alt.Status,
-			Incident:    alt.Incident.ID,
-			Severity:    normalized.Severity,
-			Tags:        normalized.Tags,
-			AlertType:   normalized.AlertType,
-			Namespace:   normalized.Namespace,
-			Description: normalized.Description,
+			ID:            alt.ID,
+			Name:          name,
+			Link:          link,
+			DashboardLink: dashboardLink,
+			Cluster:       cluster,
+			ClusterName:   clusterName,
+			HTMLURL:       alt.HTMLURL,
+			Service:       alt.Service.Summary,
+			Created:       alt.CreatedAt,
+			Status:        alt.Status,
+			Incident:      alt.Incident.ID,
+			Severity:      normalized.Severity,
+			Tags:          normalized.Tags,
+			AlertType:     normalized.AlertType,
+			Namespace:     normalized.Namespace,
+			Description:   normalized.Description,
 		})
 
 	}
@@ -1306,6 +1313,7 @@ const alertTabTemplate = `
 {{ if .Alert.Namespace }}* Namespace: {{ .Alert.Namespace }}
 {{ end -}}
 * SOP: {{ if .Alert.Link }}{{ ToLink (SOPName .Alert.Link) .Alert.Link }}{{ else }}_none_{{ end }}
+* Dashboard: {{ if .Alert.DashboardLink }}{{ ToLink (SOPName .Alert.DashboardLink) .Alert.DashboardLink }}{{ else }}_none_{{ end }}
 * Service: {{ .Alert.Service }}
 * Created: {{ .Alert.Created }}
 {{ if .Alert.Description }}

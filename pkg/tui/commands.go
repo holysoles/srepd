@@ -683,6 +683,7 @@ type browserFinishedMsg struct {
 }
 type openBrowserMsg string
 type openSOPMsg string
+type openDashboardMsg string
 
 func openBrowserCmd(browser []string, url string) tea.Cmd {
 	// All process work happens inside the returned command so the Update
@@ -1200,6 +1201,25 @@ func getSOPLink(alerts []pagerduty.IncidentAlert) (string, bool) {
 			if link != "" {
 				return link, true
 			}
+		}
+	}
+	return "", false
+}
+
+// getDashboardLink extracts the dashboard link from alerts using the alert normalization engine.
+// Falls back to raw detail field extraction for backward compatibility.
+func getDashboardLink(alerts []pagerduty.IncidentAlert) (string, bool) {
+	for _, a := range alerts {
+		normalized := alert.NormalizeAlert(a.Service.Summary, "", a)
+		if normalized.DashboardLink != "" {
+			return normalized.DashboardLink, true
+		}
+	}
+
+	for _, a := range alerts {
+		link := getDetailFieldFromAlert("dashboard", a)
+		if link != "" {
+			return link, true
 		}
 	}
 	return "", false

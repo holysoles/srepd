@@ -1395,6 +1395,71 @@ func TestGetSOPLink_LinkTakesPriorityOverRunbookURL(t *testing.T) {
 	assert.Equal(t, "https://github.com/openshift/ops-sop/blob/master/v4/alerts/primary.md", link)
 }
 
+func TestGetDashboardLink_HasLink(t *testing.T) {
+	alerts := []pagerduty.IncidentAlert{
+		{
+			Body: map[string]interface{}{
+				"details": map[string]interface{}{
+					"dashboard": "https://grafana.example.com/d/abc123/my-dashboard",
+				},
+			},
+		},
+	}
+	link, ok := getDashboardLink(alerts)
+	assert.True(t, ok)
+	assert.Equal(t, "https://grafana.example.com/d/abc123/my-dashboard", link)
+}
+
+func TestGetDashboardLink_NoLink(t *testing.T) {
+	alerts := []pagerduty.IncidentAlert{
+		{
+			Body: map[string]interface{}{
+				"details": map[string]interface{}{
+					"cluster_id": "abc-123",
+				},
+			},
+		},
+	}
+	link, ok := getDashboardLink(alerts)
+	assert.False(t, ok)
+	assert.Equal(t, "", link)
+}
+
+func TestGetDashboardLink_EmptyAlerts(t *testing.T) {
+	alerts := []pagerduty.IncidentAlert{}
+	link, ok := getDashboardLink(alerts)
+	assert.False(t, ok)
+	assert.Equal(t, "", link)
+}
+
+func TestGetDashboardLink_NilAlerts(t *testing.T) {
+	link, ok := getDashboardLink(nil)
+	assert.False(t, ok)
+	assert.Equal(t, "", link)
+}
+
+func TestGetDashboardLink_MultipleAlerts(t *testing.T) {
+	alerts := []pagerduty.IncidentAlert{
+		{
+			Body: map[string]interface{}{
+				"details": map[string]interface{}{
+					"cluster_id": "abc-123",
+				},
+			},
+		},
+		{
+			Body: map[string]interface{}{
+				"details": map[string]interface{}{
+					"dashboard": "https://grafana.example.com/d/def456/second-dashboard",
+				},
+			},
+		},
+	}
+	link, ok := getDashboardLink(alerts)
+	assert.True(t, ok)
+	assert.Equal(t, "https://grafana.example.com/d/def456/second-dashboard", link)
+}
+
 func TestGetUniqueClusters_SingleCluster(t *testing.T) {
 	alerts := []pagerduty.IncidentAlert{
 		{

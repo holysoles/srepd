@@ -107,6 +107,64 @@ func TestOpenSOPMsg_HappyPath(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// openDashboardMsg
+// ---------------------------------------------------------------------------
+
+func TestOpenDashboardMsg_NilSelectedIncident(t *testing.T) {
+	t.Run("guard: returns status when selectedIncident is nil", func(t *testing.T) {
+		m := createTestModel()
+		m.selectedIncident = nil
+
+		result, cmd := m.Update(openDashboardMsg("dashboard"))
+		m = result.(model)
+
+		assert.Nil(t, cmd, "no command should be returned when selectedIncident is nil")
+		assert.Equal(t, "no incident selected", m.status)
+	})
+}
+
+func TestOpenDashboardMsg_NoDashboardLinkFound(t *testing.T) {
+	t.Run("no dashboard link in alerts sets status", func(t *testing.T) {
+		m := createTestModelWithSelectedIncident()
+		m.config.Client = &pd.MockPagerDutyClient{}
+		m.selectedIncidentAlerts = nil
+
+		result, cmd := m.Update(openDashboardMsg("dashboard"))
+		m = result.(model)
+
+		assert.Nil(t, cmd, "no command should be returned when no dashboard link exists")
+		assert.Equal(t, "no dashboard link found", m.status)
+	})
+}
+
+func TestOpenDashboardMsg_HappyPath(t *testing.T) {
+	t.Run("returns batch command when dashboard link is found in alerts", func(t *testing.T) {
+		if defaultBrowserOpenCommand == "" {
+			t.Skip("defaultBrowserOpenCommand is empty on this OS")
+		}
+
+		m := createTestModelWithSelectedIncident()
+		m.config.Client = &pd.MockPagerDutyClient{}
+
+		m.selectedIncidentAlerts = []pagerduty.IncidentAlert{
+			{
+				APIObject: pagerduty.APIObject{ID: "A1"},
+				Body: map[string]interface{}{
+					"details": map[string]interface{}{
+						"dashboard": "https://grafana.example.com/d/abc123/my-dashboard",
+					},
+				},
+			},
+		}
+
+		result, cmd := m.Update(openDashboardMsg("dashboard"))
+		m = result.(model)
+
+		assert.NotNil(t, cmd, "should return a batch command when dashboard link exists")
+	})
+}
+
+// ---------------------------------------------------------------------------
 // browserFinishedMsg
 // ---------------------------------------------------------------------------
 
